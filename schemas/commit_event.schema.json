@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "bdigate/commit_event/v1",
+  "title": "Intention commit event (observable-only)",
+  "description": "One record per intention commit: the first plan of an episode, or any turn where the parsed plan differs from the previous committed plan. MUST contain only information observable at that point in time. Attack metadata and outcomes live in meta.jsonl, never here.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "run_id", "episode_id", "suite", "user_task_id",
+    "commit_index", "turn_index", "timestamp", "desire",
+    "previous_intention", "proposed_intention", "intention_diff",
+    "plan_parse_ok", "plan_raw", "observed_belief_ids", "raw_trace_ref",
+    "commit_decision"
+  ],
+  "properties": {
+    "schema_version": { "const": "commit_event/v1" },
+    "run_id": { "type": "string" },
+    "episode_id": {
+      "type": "string",
+      "description": "Opaque random id for one (user task[, injection task]) run. Must not encode the injection task or attack name."
+    },
+    "suite": { "type": "string" },
+    "user_task_id": { "type": "string" },
+    "commit_index": {
+      "type": "integer", "minimum": 0,
+      "description": "0 = first commit of the episode."
+    },
+    "turn_index": {
+      "type": "integer", "minimum": 0,
+      "description": "Index of the assistant turn that produced this plan."
+    },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "desire": {
+      "type": "string",
+      "description": "User task prompt verbatim (trusted)."
+    },
+    "previous_intention": {
+      "type": ["array", "null"],
+      "items": { "type": "string" },
+      "description": "Last committed plan steps; null for commit_index 0."
+    },
+    "proposed_intention": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "intention_diff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["added", "removed", "kept"],
+      "properties": {
+        "added": { "type": "array", "items": { "type": "string" } },
+        "removed": { "type": "array", "items": { "type": "string" } },
+        "kept": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "plan_parse_ok": { "type": "boolean" },
+    "plan_raw": {
+      "type": "string",
+      "description": "Raw text of the plan block as emitted (or the whole assistant text if parsing failed)."
+    },
+    "observed_belief_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Beliefs observed since the previous commit (or since episode start for commit 0). Observed provenance only; never attributed."
+    },
+    "raw_trace_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file", "message_index_end"],
+      "properties": {
+        "file": { "type": "string" },
+        "message_index_end": {
+          "type": "integer",
+          "description": "Last raw_trace message index visible at commit time (inclusive)."
+        }
+      }
+    },
+    "commit_decision": {
+      "type": "null",
+      "description": "Always null during collection. Labels are produced by a separate pipeline."
+    }
+  }
+}

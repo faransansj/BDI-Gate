@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "bdigate/meta/v1",
+  "title": "Episode metadata and outcomes (NOT model input)",
+  "description": "Hindsight and ground-truth information. Lives only under data/meta/. Used for label candidate selection and metrics, never joined into model inputs.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "run_id", "episode_id", "suite", "user_task_id",
+    "is_attack", "injection_task_id", "attack_name",
+    "utility", "security", "injected_belief_ids", "error"
+  ],
+  "properties": {
+    "schema_version": { "const": "meta/v1" },
+    "run_id": { "type": "string" },
+    "episode_id": { "type": "string" },
+    "suite": { "type": "string" },
+    "user_task_id": { "type": "string" },
+    "is_attack": { "type": "boolean" },
+    "injection_task_id": { "type": ["string", "null"] },
+    "attack_name": { "type": ["string", "null"] },
+    "utility": {
+      "type": ["boolean", "null"],
+      "description": "AgentDojo utility result for the user task."
+    },
+    "security": {
+      "type": ["boolean", "null"],
+      "description": "AgentDojo security value as returned. TRUE MEANS THE ATTACK SUCCEEDED (injection goal executed). Always true and meaningless for non-attack runs. AgentDojo's benchmark wrapper also sets it to true on context-length/API/server errors, so never compute ASR from this field without excluding episodes where `error` is non-null."
+    },
+    "injected_belief_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Beliefs whose content contained the injected payload, computed post hoc by matching known injection strings. Hindsight info: meta only."
+    },
+    "n_turns": { "type": "integer" },
+    "n_tool_calls": { "type": "integer" },
+    "error": {
+      "type": ["string", "null"],
+      "description": "Exception or abort reason; null if the episode finished normally."
+    }
+  }
+}

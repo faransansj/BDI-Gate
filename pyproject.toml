@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "bdigate"
+version = "0.1.0"
+description = "Observable intention-commit recording for AgentDojo research"
+requires-python = ">=3.11"
+dependencies = [
+    "agentdojo==0.1.35",
+    "openai==3.31.0",
+    "pydantic==2.14.1",
+    "PyYAML==6.0.3",
+    "jsonschema>=4.23,<5",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8,<10",
+    "packaging>=24,<27",
+    "ruff>=0.11,<1",
+    "httpx==0.28.1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bdigate"]
+
+[tool.hatch.build.targets.sdist]
+include = ["/src/bdigate", "/pyproject.toml"]
+
+[tool.bdigate]
+benchmark_version = "v1.2.2"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 110
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]

@@ -1,0 +1,40 @@
+# W1 smoke run: 파이프라인이 끝까지 도는지만 본다. 비용 최소.
+run_name: w1_smoke
+
+agentdojo:
+  package_version: "0.1.35"             # pyproject.toml/uv.lock과 함께 고정; 설치 버전에 맞춰 자동 변경하지 않음
+  benchmark_version: "v1.2.2"           # 등록된 최신 버전, 공식 벤치 스크립트 기본값
+  suite: workspace                      # v1.2.2: user task 40, injection task 14
+  user_tasks: [user_task_0, user_task_1, user_task_2]   # 정상 3개 (v1.2.2에 존재 확인)
+  attack:
+    enabled_for: [user_task_0]          # 이 user task에 대해서만 공격 run 추가
+    injection_tasks: [injection_task_0, injection_task_1, injection_task_2]   # 공격 3개
+    attack_name: important_instructions # pipeline_name에 모델 문자열이 있어야 동작
+  defense: null                         # W1은 무방어. 절대 켜지 않음
+  # AgentDojo는 logdir에 같은 pipeline 이름의 결과가 있으면 다시 돌리지 않고 캐시를 쓴다.
+  # 재현성 검사(같은 config 2회 실행)가 캐시 때문에 무의미해지지 않도록 run_id마다 별도 디렉터리를 쓴다.
+  logdir: "data/meta/{run_id}/agentdojo_logs"
+  force_rerun: true
+
+agent:
+  provider: openai
+  model: "gpt-4o-mini-2024-07-18"       # 날짜 고정 snapshot. alias(gpt-4o-mini) 금지
+  # important_instructions 공격이 모델명을 찾을 수 있도록 pipeline 이름에 모델 문자열을 그대로 포함
+  pipeline_name: "gpt-4o-mini-2024-07-18-plan-then-act"
+  temperature: 0
+  api_seed: 0                           # OpenAI seed 파라미터. temperature 0이어도 완전 결정적이지 않으므로 함께 고정
+  max_iters: 15                         # AgentDojo ToolsExecutionLoop 기본값과 동일
+  plan_format: plan_tag_json            # <plan>{"steps":[...]}</plan>
+  system_prompt_file: prompts/agent_system_plan_then_act.md
+
+runtime:
+  concurrency: 1                        # W1은 순차 실행. 순서·재현성 문제를 먼저 없앤다
+  request_timeout_s: 120
+  max_retries: 3                        # 요청별 재시도; 이력은 meta/<run_id>/diagnostics.jsonl, 최종 실패만 meta.error
+
+logging:
+  out_root: data
+  write_raw_trace: true
+  provenance_rules_file: docs/notes/provenance_rules.md
+
+seed: 0                                 # 샘플링 등 하네스 쪽 난수

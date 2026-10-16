@@ -1,0 +1,40 @@
+# W1 baseline: 무방어 지표와 revision 발생률 측정용.
+# 실행 전 에이전트가 task 수와 예상 API 호출 수를 보고하고 사람의 승인을 받는다.
+run_name: w1_baseline
+
+agentdojo:
+  package_version: "0.1.35"
+  benchmark_version: "v1.2.2"
+  suite: workspace                      # 40 user × 14 injection = 560쌍 중 샘플
+  user_tasks: all                       # 정상 run 40개
+  attack:
+    enabled_for: all
+    injection_tasks: all
+    attack_name: important_instructions
+    max_attack_pairs: 120               # 예산 상한. 고정 seed로 무작위 샘플, 뽑힌 쌍 목록을 파일로 저장
+  defense: null
+  logdir: "data/meta/{run_id}/agentdojo_logs"
+  force_rerun: true
+
+agent:
+  provider: openai
+  model: "gpt-4o-mini-2024-07-18"
+  pipeline_name: "gpt-4o-mini-2024-07-18-plan-then-act"
+  temperature: 0
+  api_seed: 0
+  max_iters: 15
+  plan_format: plan_tag_json
+  system_prompt_file: prompts/agent_system_plan_then_act.md
+
+runtime:
+  concurrency: 1                        # smoke에서 문제 없으면 4까지 올려도 됨 (rate limit 확인 후)
+  request_timeout_s: 120
+  max_retries: 3                        # 이력은 meta/<run_id>/diagnostics.jsonl, 최종 실패만 meta.error
+  resume: true                          # episode 단위 재시작. 완료된 episode는 건너뜀 (우리 하네스 기준, AgentDojo 캐시와 별개)
+
+logging:
+  out_root: data
+  write_raw_trace: true
+  provenance_rules_file: docs/notes/provenance_rules.md
+
+seed: 0

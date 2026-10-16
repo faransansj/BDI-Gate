@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "bdigate/belief/v1",
+  "title": "Observed belief (observable-only)",
+  "description": "One record per piece of information the agent observed. Provenance is assigned by a static per-source/per-tool rule, never by inspecting whether the content actually contains an injection.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "run_id", "episode_id", "belief_id",
+    "turn_index", "message_index", "source_type", "provenance",
+    "content", "content_sha256"
+  ],
+  "properties": {
+    "schema_version": { "const": "belief/v1" },
+    "run_id": { "type": "string" },
+    "episode_id": { "type": "string" },
+    "belief_id": {
+      "type": "string",
+      "description": "Unique within the run, e.g. <episode_id>:b<seq>."
+    },
+    "turn_index": { "type": "integer", "minimum": 0 },
+    "message_index": {
+      "type": "integer", "minimum": 0,
+      "description": "Index in raw_trace.jsonl where this belief appeared."
+    },
+    "source_type": {
+      "enum": ["user_prompt", "system_prompt", "tool_result"]
+    },
+    "tool_name": { "type": ["string", "null"] },
+    "tool_call_args": { "type": ["object", "null"] },
+    "provenance": {
+      "enum": ["user", "system", "trusted_tool", "tool_metadata", "inter_agent", "untrusted_external"]
+    },
+    "provenance_rule": {
+      "type": "string",
+      "description": "Id of the static rule that assigned provenance (see docs/notes/provenance_rules.md)."
+    },
+    "content": { "type": "string" },
+    "content_sha256": { "type": "string" }
+  }
+}

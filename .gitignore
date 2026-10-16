@@ -1,0 +1,11 @@
+.venv/
+data/
+.env
+.env.*
+API_key.json
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
