@@ -85,6 +85,21 @@ NixOS에서는 `uv run ruff`가 아니라 위의 Nix Ruff를 사용한다. pip w
 실제 설치 소스의 API·security 의미·에러·캐시 근거는 `docs/notes/agentdojo_api.md`를 참고한다.
 
 
+### Plan 파서와 턴 기록 계약
+
+`src/bdigate/harness/plan.py`의 `parse_plan(text)`는 `<plan>{"steps":[...]}</plan>` 블록 하나를 해석한다. 성공하면 태그를 포함한 원문과 steps를, 실패하면 assistant 전체 원문·`steps=None`·오류 코드를 반환한다. step의 순서·중복·공백을 바꾸지 않으며 빈 리스트는 유효한 완료 plan이다.
+
+오류 코드는 `missing_plan`, `malformed_plan_tag`, `multiple_plan_blocks`, `invalid_json`, `invalid_steps`다. 실패를 빈 plan으로 대체하지 않는다. `plan_changed(previous, proposed)`는 첫 plan과 정확한 리스트 변경만 commit으로 판정하고, `intention_diff`는 중복 개수를 보존해 added/removed/kept를 계산한다. 순서만 바뀌어도 commit이지만 diff에 별도 이동 필드는 없다.
+
+`schemas/turn.schema.json`은 사용자 지정 10개 필드만 허용한다: run_id, episode_id, turn_index, message_index, plan_present, plan_parse_ok, plan_raw, parse_error, is_commit, commit_index. 실제 commit은 성공한 parse와 정수 commit_index를 요구하며, non-commit은 commit_index=null이다. 실패는 오류 코드를 갖고 성공은 parse_error=null이다. 공격 메타 필드 추가는 거부하지만 관측 원문 문자열 속 공격 내용은 삭제하지 않는다.
+
+추후 collector는 실제 assistant 응답마다 `data/raw/<run_id>/turns.jsonl`에 한 행을 기록한다. 동일 plan·실패·무plan 턴도 보존하며, 실제 첫/변경 plan만 events에 기록한다. 추출 성공률은 events가 아니라 turns에서 계산한다. **현재는 파서·비교/diff·턴 스키마만 구현됐고 pipeline 연결과 JSONL 저장은 아직 없다.**
+
+```bash
+nix develop ./nix --command uv run --locked pytest tests/test_plan.py tests/test_turn_schema.py
+```
+무과금 실행으로 첫 plan→동일 plan→깨진 JSON→무plan→변경 plan의 5턴에서 commit이 2개이며, 실패 사이에 이전 intention을 유지하는 호출 흐름과 턴 스키마 적합성을 확인했다.
+
 ## 6. 사람이 직접 확인할 것 (에이전트에게 맡기지 말 것)
 - config: `provider: openai`, `model: gpt-4o-mini-2024-07-18`로 채워져 있다. `pipeline_name`에 모델 문자열이 들어 있어야 `important_instructions` 공격이 동작한다. `package_version`이 실제 설치 버전(`pip show agentdojo`)과 같은지 확인.
 - AgentDojo **캐시 함정**: logdir에 같은 pipeline 이름의 결과가 있으면 다시 안 돌린다. config는 run_id별 logdir + `force_rerun: true`로 막아뒀다. 재현성 검사 결과가 "완전히 똑같다"고 나오면 캐시를 의심한다.

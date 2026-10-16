@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "bdigate/turn/v1",
+  "title": "Observed assistant turn (observable-only)",
+  "description": "One record per emitted assistant turn, including final answers and failed or missing plans. No record is fabricated for a request that produced no assistant message. Attack metadata and outcomes live only in data/meta/.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "run_id", "episode_id", "turn_index", "message_index",
+    "plan_present", "plan_parse_ok", "plan_raw", "parse_error",
+    "is_commit", "commit_index"
+  ],
+  "properties": {
+    "run_id": { "type": "string" },
+    "episode_id": {
+      "type": "string",
+      "description": "Opaque episode id; must not encode the attack name or injection task."
+    },
+    "turn_index": {
+      "type": "integer", "minimum": 0,
+      "description": "Zero-based assistant turn index within the episode."
+    },
+    "message_index": {
+      "type": "integer", "minimum": 0,
+      "description": "Index of this assistant message in the run's raw_trace.jsonl."
+    },
+    "plan_present": { "type": "boolean" },
+    "plan_parse_ok": { "type": "boolean" },
+    "plan_raw": {
+      "type": "string",
+      "description": "Exact tagged plan block on success; entire assistant text on failure."
+    },
+    "parse_error": {
+      "type": ["string", "null"], "minLength": 1,
+      "description": "Parser error code on failure; null on success. Never an API exception or outcome."
+    },
+    "is_commit": {
+      "type": "boolean",
+      "description": "True only for a successfully parsed first or changed plan."
+    },
+    "commit_index": {
+      "type": ["integer", "null"], "minimum": 0,
+      "description": "Corresponding event's episode-local commit index, or null for a non-commit turn."
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "is_commit": { "const": true } } },
+      "then": {
+        "properties": {
+          "plan_parse_ok": { "const": true },
+          "commit_index": { "type": "integer" }
+        }
+      },
+      "else": { "properties": { "commit_index": { "type": "null" } } }
+    },
+    {
+      "if": { "properties": { "plan_parse_ok": { "const": true } } },
+      "then": {
+        "properties": {
+          "plan_present": { "const": true },
+          "parse_error": { "type": "null" }
+        }
+      },
+      "else": { "properties": { "parse_error": { "type": "string" } } }
+    }
+  ]
+}
